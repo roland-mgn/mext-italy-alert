@@ -9,15 +9,6 @@ from urllib3.exceptions import InsecureRequestWarning
 from bs4 import BeautifulSoup
 from pathlib import Path
 
-time = datetime.datetime.now()
-
-last_check = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-state['last_check'] = last_check
-
-# Save updated state
-with open('log.json', 'w') as f:
-    json.dump(state, f)
-
 # Sopprimi warning SSL dovuto a verify=False con ScraperAPI
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -114,6 +105,9 @@ def main():
     if studio_hash is None:
         print("changed=false")
         return
+
+    last_check = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    state['last_check'] = last_check
 
     last_studio_hash = state.get("last_studio_hash")
     last_full_hash = state.get("last_full_hash")
