@@ -29,6 +29,8 @@ jobs:
 
       - name: Run checker
         id: checker
+        env:
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
         run: |
           OUTPUT=$(python check_mext.py)
           echo "$OUTPUT"
