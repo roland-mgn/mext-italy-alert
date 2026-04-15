@@ -1,6 +1,9 @@
 import json
 import hashlib
+import time
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from pathlib import Path
 
@@ -15,6 +18,7 @@ HEADERS = {
     "Accept-Encoding": "gzip, deflate, br",
     "Connection": "keep-alive",
     "Upgrade-Insecure-Requests": "1",
+    "Referer": "https://www.google.com/",
 }
 
 def load_state():
@@ -36,17 +40,33 @@ def make_hash(text):
 
 def extract_data():
     session = requests.Session()
+
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=2,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
     session.headers.update(HEADERS)
-    r = session.get(URL, timeout=30)
-    r.raise_for_status()
+
+    try:
+        r = session.get(URL, timeout=30)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 403:
+            print("warning=403")
+            return None, None, None
+        raise
+
     soup = BeautifulSoup(r.text, "html.parser")
 
-    # --- sezione studio ---
-    # Cerca tutti i tag che contengono link a URL con "studio" nel percorso
+    # Sezione studio: tutti i link che puntano a URL con "studio" nel percorso
     studio_items = []
     for a in soup.find_all("a", href=True):
         if "studio" in a["href"].lower():
-            # Risali al contenitore più vicino (li, div, p, td)
             parent = a.find_parent(["li", "div", "p", "td", "tr"])
             item_text = normalize(parent.get_text(" ", strip=True)) if parent else normalize(a.get_text(" ", strip=True))
             if item_text and item_text not in studio_items:
@@ -55,7 +75,7 @@ def extract_data():
     studio_text = "\n".join(studio_items) if studio_items else ""
     studio_hash = make_hash(studio_text)
 
-    # --- hash intera pagina ---
+    # Hash intera pagina
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
     full_text = normalize(soup.get_text("\n", strip=True))
@@ -66,6 +86,11 @@ def extract_data():
 def main():
     state = load_state()
     studio_text, studio_hash, full_hash = extract_data()
+
+    # Se il sito ha bloccato la richiesta, salta senza aggiornare stato
+    if studio_hash is None:
+        print("changed=false")
+        return
 
     last_studio_hash = state.get("last_studio_hash")
     last_full_hash = state.get("last_full_hash")
