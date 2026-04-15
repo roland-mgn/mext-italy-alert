@@ -23,12 +23,21 @@ def normalize_text(text):
     return " ".join(text.split())
 
 def extract_page_data():
-    r = requests.get(URL, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    })
+
+    r = session.get(URL, timeout=30)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "html.parser")
 
     title = None
-
     og = soup.find("meta", property="og:title")
     if og and og.get("content"):
         title = og["content"].strip()
