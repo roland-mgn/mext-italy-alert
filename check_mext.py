@@ -1,11 +1,15 @@
 import json
 import hashlib
-import time
+import os
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from urllib3.exceptions import InsecureRequestWarning
 from bs4 import BeautifulSoup
 from pathlib import Path
+
+# Sopprimi warning SSL dovuto a verify=False con ScraperAPI
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 URL = "https://www.it.emb-japan.go.jp/itpr_it/index.html"
 STATE_FILE = Path("state.json")
@@ -52,8 +56,14 @@ def extract_data():
     session.mount("https://", adapter)
     session.headers.update(HEADERS)
 
+    api_key = os.getenv("SCRAPER_API_KEY")
+    proxies = None
+    if api_key:
+        proxy_url = f"http://scraperapi:{api_key}@proxy-server.scraperapi.com:8001"
+        proxies = {"http": proxy_url, "https": proxy_url}
+
     try:
-        r = session.get(URL, timeout=30)
+        r = session.get(URL, proxies=proxies, timeout=60, verify=False)
         r.raise_for_status()
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 403:
@@ -68,7 +78,10 @@ def extract_data():
     for a in soup.find_all("a", href=True):
         if "studio" in a["href"].lower():
             parent = a.find_parent(["li", "div", "p", "td", "tr"])
-            item_text = normalize(parent.get_text(" ", strip=True)) if parent else normalize(a.get_text(" ", strip=True))
+            item_text = normalize(
+                parent.get_text(" ", strip=True) if parent
+                else a.get_text(" ", strip=True)
+            )
             if item_text and item_text not in studio_items:
                 studio_items.append(item_text)
 
@@ -87,7 +100,7 @@ def main():
     state = load_state()
     studio_text, studio_hash, full_hash = extract_data()
 
-    # Se il sito ha bloccato la richiesta, salta senza aggiornare stato
+    # Se la richiesta è stata bloccata, salta senza toccare lo stato
     if studio_hash is None:
         print("changed=false")
         return
