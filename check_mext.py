@@ -11,9 +11,6 @@ from pathlib import Path
 
 time = datetime.datetime.now()
 
-with open('log.json', 'r') as f:
-    state = json.load(f)
-
 last_check = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
 state['last_check'] = last_check
 
