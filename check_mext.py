@@ -2,11 +2,24 @@ import json
 import hashlib
 import os
 import requests
+import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from urllib3.exceptions import InsecureRequestWarning
 from bs4 import BeautifulSoup
 from pathlib import Path
+
+time = datetime.datetime.now()
+
+with open('log.json', 'r') as f:
+    state = json.load(f)
+
+last_check = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+state['last_check'] = last_check
+
+# Save updated state
+with open('log.json', 'w') as f:
+    json.dump(state, f)
 
 # Sopprimi warning SSL dovuto a verify=False con ScraperAPI
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
