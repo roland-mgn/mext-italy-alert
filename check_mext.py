@@ -127,15 +127,15 @@ def main():
         lines.append("")
 
         if studio_changed:
-            lines.append("✅ La sezione STUDIO è cambiata. Contenuto attuale:")
+            lines.append("🇯🇵 La sezione STUDIO potrebbe essere cambiata. Contenuto attuale:")
             lines.append("")
             lines.append(studio_text if studio_text else "(nessun link studio trovato)")
         else:
-            lines.append("ℹ️ La sezione STUDIO non è cambiata.")
+            lines.append("💴 La sezione STUDIO non è cambiata.")
 
         if page_changed:
             lines.append("")
-            lines.append("⚠️ È cambiata anche un'altra parte della pagina (hash diverso).")
+            lines.append("🎌 È cambiato qualcosa nella pagina (hash diverso).")
 
         OUTPUT_FILE.write_text("\n".join(lines), encoding="utf-8")
         print("changed=true")
